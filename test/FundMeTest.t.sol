@@ -24,7 +24,7 @@ contract FundMeTest is Test {
     }
 
     function testOwnerIsMsgSender() public view {
-        assertEq(fundMe.i_owner(), msg.sender);
+        assertEq(fundMe.getOwner(), msg.sender);
     }
 
     // What can we do to work with addresses outside our system?
@@ -61,6 +61,54 @@ contract FundMeTest is Test {
         vm.expectRevert();
         vm.prank(USER);
         fundMe.withdraw();
+    }
+
+    function testWithdrawWithSingleFunder() public funded {
+        // Arrange
+        uint256 startingOwnerBalance = fundMe.getOwner().balance;
+        uint256 startingFundMeBalance = address(fundMe).balance;
+
+        // Act
+        vm.prank(fundMe.getOwner());
+        fundMe.withdraw();
+
+        // Assert
+        uint256 endingOwnerBalance = fundMe.getOwner().balance;
+        uint256 endingFundMeBalance = address(fundMe).balance;
+        assertEq(endingFundMeBalance, 0);
+        assertEq(
+            startingFundMeBalance + startingOwnerBalance,
+            endingOwnerBalance
+        );
+    }
+
+    function testWithdrawWithMultipleFunders() public funded {
+        // Arrange
+        // using numbers to generate addresses required a uint160 (because an address and a uint160 has the same amount of bytes)
+        uint160 numberOfFunders = 10;
+        uint160 startingFunderIndex = 1; // when testing with addresses, try to avoid starting from 0, as it sometimes reverts
+
+        for (uint160 i = startingFunderIndex; i < numberOfFunders; i++) {
+            // vm.prank new address
+            // vm.deal new address
+            hoax(address(i), SEND_VALUE);
+            fundMe.fund{value: SEND_VALUE}();
+        }
+
+        uint256 startingOwnerBalance = fundMe.getOwner().balance;
+        uint256 startingFundMeBalance = address(fundMe).balance;
+
+        // Act
+        vm.startPrank(fundMe.getOwner());
+        fundMe.withdraw();
+        vm.stopPrank();
+
+        // Assert
+        assert(address(fundMe).balance == 0);
+        assert(
+            startingFundMeBalance + startingOwnerBalance ==
+                fundMe.getOwner().balance
+        );
     }
 
     modifier funded() {

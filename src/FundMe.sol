@@ -16,7 +16,7 @@ contract FundMe {
     mapping(address funder => uint256 amountFunded)
         private s_addressToAmoundFunded;
 
-    address public immutable i_owner; // declare immutable when assigned later
+    address private immutable i_owner; // declare immutable when assigned later
     uint256 public constant MINIMUM_USD = 5e18; // declare constant when assigned immediately
     // 307 gas: constant
     // 2451 gas: non-constant
@@ -103,5 +103,9 @@ contract FundMe {
 
     function getFunder(uint256 index) external view returns (address) {
         return s_funders[index];
+    }
+
+    function getOwner() external view returns (address) {
+        return i_owner;
     }
 }
