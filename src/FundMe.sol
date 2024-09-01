@@ -12,9 +12,9 @@ error FundMe__NotOwner();
 contract FundMe {
     using PriceConverter for uint256;
 
-    address[] public funders;
+    address[] private s_funders;
     mapping(address funder => uint256 amountFunded)
-        public addressToAmoundFunded;
+        private s_addressToAmoundFunded;
 
     address public immutable i_owner; // declare immutable when assigned later
     uint256 public constant MINIMUM_USD = 5e18; // declare constant when assigned immediately
@@ -36,22 +36,22 @@ contract FundMe {
             msg.value.getConversionRate(s_priceFeed) > MINIMUM_USD,
             "Not enough USD sent"
         );
-        funders.push(msg.sender);
-        addressToAmoundFunded[msg.sender] += msg.value;
+        s_funders.push(msg.sender);
+        s_addressToAmoundFunded[msg.sender] += msg.value;
     }
 
     function withdraw() public onlyOwner {
         for (
             uint256 funderIndex = 0;
-            funderIndex < funders.length;
+            funderIndex < s_funders.length;
             funderIndex++
         ) {
-            address funder = funders[funderIndex];
-            addressToAmoundFunded[funder] = 0;
+            address funder = s_funders[funderIndex];
+            s_addressToAmoundFunded[funder] = 0;
         }
 
         // Reset the array
-        funders = new address[](0);
+        s_funders = new address[](0);
 
         // Actually withdraw funds
 
@@ -89,5 +89,19 @@ contract FundMe {
 
     fallback() external payable {
         fund();
+    }
+
+    /**
+     * View / Pure functions (Getters)
+     */
+
+    function getAddressToAmountFunded(
+        address fundingAddress
+    ) external view returns (uint256) {
+        return s_addressToAmoundFunded[fundingAddress];
+    }
+
+    function getFunder(uint256 index) external view returns (address) {
+        return s_funders[index];
     }
 }
